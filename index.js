@@ -53,6 +53,7 @@ async function run() {
 
     const database = client.db("summerCamp");
     const userCollection = database.collection("users");
+    const classCollection = database.collection("classes");
 
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
@@ -89,6 +90,41 @@ async function run() {
       res.send({ token });
     });
 
+    // Get specific instructor class class
+    app.get(
+      "/classes/:email",
+      verifyJWT,
+      verifyInstructor,
+      async (req, res) => {
+        const email = req.params.email;
+
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          return res
+            .status(403)
+            .send({ error: true, message: "forbidden access" });
+        }
+
+        const query = { instructorEmail: email };
+        const result = await classCollection.find(query).toArray();
+        console.log(result);
+        res.send(result);
+      }
+    );
+
+    // Create class
+    app.post("/classes", verifyJWT, verifyInstructor, async (req, res) => {
+      const newItem = req.body;
+      const result = await classCollection.insertOne(newItem);
+
+      if (result.insertedId) {
+        console.log("Item added successfully!");
+      } else {
+        console.log("Item added failed!");
+      }
+      res.send(result);
+    });
+
     // Save user email and role in DB
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
@@ -98,7 +134,7 @@ async function run() {
       const updateDoc = {
         $set: user,
       };
-      const result = await usersCollection.updateOne(query, updateDoc, options);
+      const result = await userCollection.updateOne(query, updateDoc, options);
       res.send(result);
     });
 
