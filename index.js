@@ -230,6 +230,20 @@ async function run() {
       res.send(result);
     });
 
+    // Delete specific student's selected class
+    app.delete("/selected-classes/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+      const result = await selectedClassCollection.deleteOne(query);
+      if (result.deletedCount === 1) {
+        console.log("Successfully deleted one document.");
+      } else {
+        console.log("No documents matched the query. Deleted 0 documents.");
+      }
+      res.send(result);
+    });
+
     // Added selected class
     app.post("/selected-classes", verifyJWT, async (req, res) => {
       const selectedClass = req.body;
