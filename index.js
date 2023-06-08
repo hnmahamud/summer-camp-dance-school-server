@@ -90,6 +90,12 @@ async function run() {
       res.send({ token });
     });
 
+    // Get all classes
+    app.get("/classes", verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+
     // Get specific instructor class class
     app.get(
       "/classes/:email",
