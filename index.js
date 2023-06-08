@@ -54,7 +54,7 @@ async function run() {
     const database = client.db("summerCamp");
     const userCollection = database.collection("users");
     const classCollection = database.collection("classes");
-    const selectedClassCollection = database.collection("selected-class");
+    const selectedClassCollection = database.collection("selected-classes");
 
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
@@ -104,7 +104,7 @@ async function run() {
       res.send(result);
     });
 
-    // Get specific instructor class class
+    // Get specific instructor's class
     app.get(
       "/classes/:email",
       verifyJWT,
@@ -214,8 +214,24 @@ async function run() {
       }
     );
 
+    // Get specific student's selected class
+    app.get("/selected-classes/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      const decodedEmail = req.decoded.email;
+      if (decodedEmail !== email) {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+
+      const query = { studentEmail: email };
+      const result = await selectedClassCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Added selected class
-    app.post("/selected-class", verifyJWT, async (req, res) => {
+    app.post("/selected-classes", verifyJWT, async (req, res) => {
       const selectedClass = req.body;
       const result = await selectedClassCollection.insertOne(selectedClass);
 
