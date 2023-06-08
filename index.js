@@ -96,6 +96,13 @@ async function run() {
       res.send(result);
     });
 
+    // Get all approved classes
+    app.get("/classes-approved", async (req, res) => {
+      const query = { status: "approved" };
+      const result = await classCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Get specific instructor class class
     app.get(
       "/classes/:email",
@@ -198,9 +205,9 @@ async function run() {
         };
         const result = await classCollection.updateOne(filter, updateDoc);
         if (result.modifiedCount > 0) {
-          console.log("Role updated successfully!");
+          console.log("Status updated successfully!");
         } else {
-          console.log("Role updated failed!");
+          console.log("Status updated failed!");
         }
         res.send(result);
       }
