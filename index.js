@@ -134,7 +134,7 @@ async function run() {
     });
 
     // Update class
-    app.patch("/class/:id", async (req, res) => {
+    app.patch("/classes/:id", async (req, res) => {
       const id = req.params.id;
       const updateItem = req.body;
       const filter = { _id: new ObjectId(id) };
@@ -152,7 +152,13 @@ async function run() {
       res.send(result);
     });
 
-    // Save user email and role in DB
+    // Get all user from DB
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Save user in DB
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -164,6 +170,30 @@ async function run() {
       const result = await userCollection.updateOne(query, updateDoc, options);
       res.send(result);
     });
+
+    // Change user role
+    app.patch(
+      "/users/change-role/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const role = req.body.role;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            role: role,
+          },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount > 0) {
+          console.log("Role updated successfully!");
+        } else {
+          console.log("Role updated failed!");
+        }
+        res.send(result);
+      }
+    );
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
