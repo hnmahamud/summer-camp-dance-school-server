@@ -182,6 +182,30 @@ async function run() {
       }
     );
 
+    // Add classes feedback
+    app.patch(
+      "/classes/add-feedback/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const feedback = req.body.feedback;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            feedback: feedback,
+          },
+        };
+        const result = await classCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount > 0) {
+          console.log("Role updated successfully!");
+        } else {
+          console.log("Role updated failed!");
+        }
+        res.send(result);
+      }
+    );
+
     // Get all user from DB
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
