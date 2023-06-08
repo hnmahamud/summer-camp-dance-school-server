@@ -54,6 +54,7 @@ async function run() {
     const database = client.db("summerCamp");
     const userCollection = database.collection("users");
     const classCollection = database.collection("classes");
+    const selectedClassCollection = database.collection("selected-class");
 
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
@@ -212,6 +213,19 @@ async function run() {
         res.send(result);
       }
     );
+
+    // Added selected class
+    app.post("/selected-class", verifyJWT, async (req, res) => {
+      const selectedClass = req.body;
+      const result = await selectedClassCollection.insertOne(selectedClass);
+
+      if (result.insertedId) {
+        console.log("Class added successfully!");
+      } else {
+        console.log("Class added failed!");
+      }
+      res.send(result);
+    });
 
     // Get all user from DB
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
