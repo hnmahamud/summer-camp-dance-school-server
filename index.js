@@ -34,7 +34,7 @@ const verifyJWT = (req, res, next) => {
   });
 };
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.6jia9zl.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -107,10 +107,18 @@ async function run() {
 
         const query = { instructorEmail: email };
         const result = await classCollection.find(query).toArray();
-        console.log(result);
         res.send(result);
       }
     );
+
+    // Get specific class
+    app.get("/class/:id", verifyJWT, verifyInstructor, async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+      const result = await classCollection.findOne(query);
+      res.send(result);
+    });
 
     // Create class
     app.post("/classes", verifyJWT, verifyInstructor, async (req, res) => {
@@ -121,6 +129,25 @@ async function run() {
         console.log("Item added successfully!");
       } else {
         console.log("Item added failed!");
+      }
+      res.send(result);
+    });
+
+    // Update class
+    app.patch("/class/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateItem = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          ...updateItem,
+        },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      if (result.modifiedCount > 0) {
+        console.log("Class updated successfully!");
+      } else {
+        console.log("Class updated failed!");
       }
       res.send(result);
     });
