@@ -158,6 +158,30 @@ async function run() {
       res.send(result);
     });
 
+    // Change classes status
+    app.patch(
+      "/classes/change-status/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const status = req.body.status;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            status: status,
+          },
+        };
+        const result = await classCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount > 0) {
+          console.log("Role updated successfully!");
+        } else {
+          console.log("Role updated failed!");
+        }
+        res.send(result);
+      }
+    );
+
     // Get all user from DB
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
