@@ -310,6 +310,14 @@ async function run() {
       res.send(result);
     });
 
+    // Get specific user for role
+    app.get("/users-role/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+
     // Save user in DB
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
