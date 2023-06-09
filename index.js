@@ -85,6 +85,19 @@ async function run() {
       next();
     };
 
+    // verifyStudent
+    const verifyStudent = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role === "instructor" || user?.role === "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
     // Create jwt token
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -151,7 +164,7 @@ async function run() {
     });
 
     // Update class
-    app.patch("/classes/:id", async (req, res) => {
+    app.patch("/classes/:id", verifyJWT, verifyInstructor, async (req, res) => {
       const id = req.params.id;
       const updateItem = req.body;
       const filter = { _id: new ObjectId(id) };
@@ -218,78 +231,103 @@ async function run() {
     );
 
     // Get specific student's selected classes
-    app.get("/selected-classes/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email;
+    app.get(
+      "/selected-classes/:email",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const email = req.params.email;
 
-      const decodedEmail = req.decoded.email;
-      if (decodedEmail !== email) {
-        return res
-          .status(403)
-          .send({ error: true, message: "forbidden access" });
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          return res
+            .status(403)
+            .send({ error: true, message: "forbidden access" });
+        }
+
+        const query = { studentEmail: email };
+        const result = await selectedClassCollection.find(query).toArray();
+        res.send(result);
       }
+    );
 
-      const query = { studentEmail: email };
-      const result = await selectedClassCollection.find(query).toArray();
-      res.send(result);
-    });
+    // Get specific student's selected single class for payment
+    app.get(
+      "/selected-class/:id",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const id = req.params.id;
+
+        const query = { _id: new ObjectId(id) };
+        const result = await selectedClassCollection.findOne(query);
+        res.send(result);
+      }
+    );
 
     // Get specific student's enrolled classes
-    app.get("/enrolled-classes/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email;
+    app.get(
+      "/enrolled-classes/:email",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const email = req.params.email;
 
-      const decodedEmail = req.decoded.email;
-      if (decodedEmail !== email) {
-        return res
-          .status(403)
-          .send({ error: true, message: "forbidden access" });
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          return res
+            .status(403)
+            .send({ error: true, message: "forbidden access" });
+        }
+
+        const query = { studentEmail: email };
+        const result = await enrolledClassCollection.find(query).toArray();
+        res.send(result);
       }
+    );
 
-      const query = { studentEmail: email };
-      const result = await enrolledClassCollection.find(query).toArray();
-      res.send(result);
-    });
+    // Get specific student's payment history
+    app.get(
+      "/payments-history/:email",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const email = req.params.email;
 
-    // Get specific student's payment classes
-    app.get("/payments-history/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email;
+        const decodedEmail = req.decoded.email;
+        if (decodedEmail !== email) {
+          return res
+            .status(403)
+            .send({ error: true, message: "forbidden access" });
+        }
 
-      const decodedEmail = req.decoded.email;
-      if (decodedEmail !== email) {
-        return res
-          .status(403)
-          .send({ error: true, message: "forbidden access" });
+        const query = { studentEmail: email };
+        const result = await paymentHistoryCollection
+          .find(query)
+          .sort({ date: -1 })
+          .toArray();
+        res.send(result);
       }
-
-      const query = { studentEmail: email };
-      const result = await paymentHistoryCollection
-        .find(query)
-        .sort({ date: -1 })
-        .toArray();
-      res.send(result);
-    });
-
-    // Get specific student's selected class
-    app.get("/selected-class/:id", verifyJWT, async (req, res) => {
-      const id = req.params.id;
-
-      const query = { _id: new ObjectId(id) };
-      const result = await selectedClassCollection.findOne(query);
-      res.send(result);
-    });
+    );
 
     // Delete specific student's selected class
-    app.delete("/selected-classes/:id", verifyJWT, async (req, res) => {
-      const id = req.params.id;
+    app.delete(
+      "/selected-classes/:id",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const id = req.params.id;
 
-      const query = { _id: new ObjectId(id) };
-      const result = await selectedClassCollection.deleteOne(query);
-      if (result.deletedCount === 1) {
-        console.log("Successfully deleted one document.");
-      } else {
-        console.log("No documents matched the query. Deleted 0 documents.");
+        const query = { _id: new ObjectId(id) };
+        const result = await selectedClassCollection.deleteOne(query);
+        if (result.deletedCount === 1) {
+          console.log("Successfully deleted one document.");
+        } else {
+          console.log("No documents matched the query. Deleted 0 documents.");
+        }
+        res.send(result);
       }
-      res.send(result);
-    });
+    );
 
     // Added selected class
     app.post("/selected-classes", verifyJWT, async (req, res) => {
@@ -304,21 +342,21 @@ async function run() {
       res.send(result);
     });
 
-    // Get all user from DB
+    // Get all user
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
     // Get specific user for role
-    app.get("/users-role/:email", async (req, res) => {
+    app.get("/users-role/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await userCollection.findOne(query);
       res.send(result);
     });
 
-    // Save user in DB
+    // Save firebase created user in database
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -372,7 +410,7 @@ async function run() {
       });
     });
 
-    // Payments
+    // Stripe payments submit
     app.post("/payments", async (req, res) => {
       const { paymentHistory, enrolledClass } = req.body;
       const insertPaymentHistory = await paymentHistoryCollection.insertOne(
