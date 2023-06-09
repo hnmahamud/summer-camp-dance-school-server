@@ -233,7 +233,7 @@ async function run() {
       res.send(result);
     });
 
-    // Get specific student's selected classes
+    // Get specific student's enrolled classes
     app.get("/enrolled-classes/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
 
@@ -246,6 +246,25 @@ async function run() {
 
       const query = { studentEmail: email };
       const result = await enrolledClassCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Get specific student's payment classes
+    app.get("/payments-history/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      const decodedEmail = req.decoded.email;
+      if (decodedEmail !== email) {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+
+      const query = { studentEmail: email };
+      const result = await paymentHistoryCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
 
