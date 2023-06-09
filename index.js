@@ -233,6 +233,22 @@ async function run() {
       res.send(result);
     });
 
+    // Get specific student's selected classes
+    app.get("/enrolled-classes/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      const decodedEmail = req.decoded.email;
+      if (decodedEmail !== email) {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+
+      const query = { studentEmail: email };
+      const result = await enrolledClassCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Get specific student's selected class
     app.get("/selected-class/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
@@ -351,6 +367,9 @@ async function run() {
       const updateDoc = {
         $set: {
           availableSeats: singleClass.availableSeats - 1,
+          totalEnrolled: singleClass.totalEnrolled
+            ? singleClass.totalEnrolled + 1
+            : 1,
         },
       };
       const updateAvailableSeats = await classCollection.updateOne(
