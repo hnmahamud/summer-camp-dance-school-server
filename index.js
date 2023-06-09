@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -55,6 +56,8 @@ async function run() {
     const userCollection = database.collection("users");
     const classCollection = database.collection("classes");
     const selectedClassCollection = database.collection("selected-classes");
+    const paymentHistoryCollection = database.collection("payments-history");
+    const enrolledClassCollection = database.collection("enrolled-classes");
 
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
@@ -214,7 +217,7 @@ async function run() {
       }
     );
 
-    // Get specific student's selected class
+    // Get specific student's selected classes
     app.get("/selected-classes/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
 
@@ -227,6 +230,15 @@ async function run() {
 
       const query = { studentEmail: email };
       const result = await selectedClassCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Get specific student's selected class
+    app.get("/selected-class/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+      const result = await selectedClassCollection.findOne(query);
       res.send(result);
     });
 
@@ -299,6 +311,60 @@ async function run() {
         res.send(result);
       }
     );
+
+    // Stripe payment intent
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    // Payments
+    app.post("/payments", async (req, res) => {
+      const { paymentHistory, enrolledClass } = req.body;
+      const insertPaymentHistory = await paymentHistoryCollection.insertOne(
+        paymentHistory
+      );
+
+      const insertEnrolledClass = await enrolledClassCollection.insertOne(
+        enrolledClass
+      );
+
+      const selectedClassQuery = { classId: enrolledClass.classId };
+      const deleteSelectedClass = await selectedClassCollection.deleteOne(
+        selectedClassQuery
+      );
+
+      const filter = { _id: new ObjectId(enrolledClass.classId) };
+      const singleClass = await classCollection.findOne(filter);
+
+      const updateDoc = {
+        $set: {
+          availableSeats: singleClass.availableSeats - 1,
+        },
+      };
+      const updateAvailableSeats = await classCollection.updateOne(
+        filter,
+        updateDoc
+      );
+
+      res.send({
+        insertPaymentHistory,
+        insertEnrolledClass,
+        deleteSelectedClass,
+        updateAvailableSeats,
+      });
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
