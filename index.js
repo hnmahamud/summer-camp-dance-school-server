@@ -329,7 +329,23 @@ async function run() {
       }
     );
 
-    // Added selected class
+    // Check class isExist
+    app.get("/exist-classes", async (req, res) => {
+      const { email, id } = req.query;
+      const query = {
+        studentEmail: email,
+        classId: id,
+      };
+      const existInSelectedClass = await selectedClassCollection.findOne(query);
+      const existInEnrolledClass = await enrolledClassCollection.findOne(query);
+      if (existInEnrolledClass || existInSelectedClass) {
+        res.send({ isExist: true });
+      } else {
+        res.send({ isExist: false });
+      }
+    });
+
+    // Added class
     app.post("/selected-classes", verifyJWT, async (req, res) => {
       const selectedClass = req.body;
       const result = await selectedClassCollection.insertOne(selectedClass);
