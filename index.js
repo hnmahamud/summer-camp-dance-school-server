@@ -330,7 +330,7 @@ async function run() {
     );
 
     // Check class isExist
-    app.get("/exist-classes", async (req, res) => {
+    app.get("/exist-classes", verifyJWT, async (req, res) => {
       const { email, id } = req.query;
       const query = {
         studentEmail: email,
@@ -369,6 +369,13 @@ async function run() {
       const email = req.params.email;
       const query = { email: email };
       const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Get all instructor users
+    app.get("/users-instructors", async (req, res) => {
+      const query = { role: "instructor" };
+      const result = await userCollection.find(query).toArray();
       res.send(result);
     });
 
