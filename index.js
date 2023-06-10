@@ -436,23 +436,27 @@ async function run() {
     // Stripe payments submit
     app.post("/payments", async (req, res) => {
       const { paymentHistory, enrolledClass } = req.body;
+
+      // Added payments history
       const insertPaymentHistory = await paymentHistoryCollection.insertOne(
         paymentHistory
       );
 
+      // Added enrolled class
       const insertEnrolledClass = await enrolledClassCollection.insertOne(
         enrolledClass
       );
 
+      // Delete class from selected class
       const selectedClassQuery = { classId: enrolledClass.classId };
       const deleteSelectedClass = await selectedClassCollection.deleteOne(
         selectedClassQuery
       );
 
-      const filter = { _id: new ObjectId(enrolledClass.classId) };
-      const singleClass = await classCollection.findOne(filter);
-
-      const updateDoc = {
+      // Update class with total enrolled and available seat
+      const filterClass = { _id: new ObjectId(enrolledClass.classId) };
+      const singleClass = await classCollection.findOne(filterClass);
+      const updateDocClass = {
         $set: {
           availableSeats: singleClass.availableSeats - 1,
           totalEnrolled: singleClass.totalEnrolled
@@ -460,16 +464,32 @@ async function run() {
             : 1,
         },
       };
-      const updateAvailableSeats = await classCollection.updateOne(
-        filter,
-        updateDoc
+      const updateSeats = await classCollection.updateOne(
+        filterClass,
+        updateDocClass
+      );
+
+      // Update instructor with total student
+      const filterInstructor = { email: enrolledClass.instructorEmail };
+      const singleInstructor = await userCollection.findOne(filterInstructor);
+      const updateDocInstructor = {
+        $set: {
+          totalStudents: singleInstructor.totalStudents
+            ? singleInstructor.totalStudents + 1
+            : 1,
+        },
+      };
+      const updateInstructor = await userCollection.updateOne(
+        filterInstructor,
+        updateDocInstructor
       );
 
       res.send({
         insertPaymentHistory,
         insertEnrolledClass,
         deleteSelectedClass,
-        updateAvailableSeats,
+        updateSeats,
+        updateInstructor,
       });
     });
 
