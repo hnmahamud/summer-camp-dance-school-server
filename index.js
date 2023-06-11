@@ -358,6 +358,18 @@ async function run() {
       res.send(result);
     });
 
+    // Get top 6 classes(filtered by student number)
+    app.get("/classes-top", async (req, res) => {
+      const result = await classCollection
+        .find()
+        .sort({
+          totalEnrolled: -1,
+        }) // Sort by enrolledStudent in descending order
+        .limit(6) // Limit the result to the top 6 classes
+        .toArray();
+      res.send(result);
+    });
+
     // Get all user
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
