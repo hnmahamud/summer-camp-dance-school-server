@@ -391,6 +391,18 @@ async function run() {
       res.send(result);
     });
 
+    // Get top 6 instructors(filtered by student number)
+    app.get("/instructor-top", async (req, res) => {
+      const result = await userCollection
+        .find()
+        .sort({
+          totalStudents: -1,
+        }) // Sort by totalStudents in descending order
+        .limit(6) // Limit the result to the top 6 instructors
+        .toArray();
+      res.send(result);
+    });
+
     // Save firebase created user in database
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
