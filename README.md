@@ -1,1 +1,13 @@
-# b7a12-summer-camp-server_side-hnmahamud
+## Installation
+
+For install dependency:
+
+```sh
+npm install
+```
+
+For run the project:
+
+```sh
+nodemon index.js
+```
